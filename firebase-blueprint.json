@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "A technical project for a construction work",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "workName": { "type": "string" },
+        "type": { "type": "string", "enum": ["DWG", "PDF"] },
+        "uploadDate": { "type": "string" },
+        "size": { "type": "string" },
+        "author": { "type": "string" },
+        "version": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "workName", "type", "uploadDate", "uid"]
+    },
+    "Work": {
+      "title": "Work",
+      "description": "A construction work",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "owner": { "type": "string" },
+        "address": { "type": "string" },
+        "status": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "uid"]
+    },
+    "Material": {
+      "title": "Material",
+      "description": "A construction material",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "workId": { "type": "string" },
+        "workName": { "type": "string" },
+        "lastRestock": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "uid"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A system user",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "client", "pro"] }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "projects": {
+      "schema": "Project",
+      "description": "Collection of technical projects"
+    },
+    "works": {
+      "schema": "Work",
+      "description": "Collection of construction works"
+    },
+    "materials": {
+      "schema": "Material",
+      "description": "Collection of construction materials"
+    },
+    "users": {
+      "schema": "User",
+      "description": "Collection of system users"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Perfil Acabamentos - Gestão de Obras</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html {
+            font-size: 16px;
+        }
+        @media (max-width: 768px) {
+            html {
+                font-size: 20.8px; /* +30% increase */
+            }
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            touch-action: pan-x pan-y; /* Disable pinch zoom */
+        }
+        /* Darken small/background text for better visibility */
+        .text-slate-400 {
+            color: #475569 !important; /* slate-600 */
+        }
+        .text-slate-500 {
+            color: #334155 !important; /* slate-700 */
+        }
+        .text-slate-300 {
+            color: #64748b !important; /* slate-500 */
+        }
+        .text-slate-200 {
+            color: #94a3b8 !important; /* slate-400 */
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        // Prevent pinch zoom
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+        
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

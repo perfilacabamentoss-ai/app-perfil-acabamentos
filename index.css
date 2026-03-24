@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* Global styles */
+body {
+  @apply bg-slate-50 font-sans text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #f59e0b; /* amber-500 */
+  border-radius: 10px;
+  border: 2px solid #0b1222;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #fbbf24; /* amber-400 */
+}
