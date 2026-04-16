@@ -23,7 +23,7 @@ import {
 import { Collaborator } from '../types';
 import ConfirmModal from './ConfirmModal';
 import { generateCollaboratorToken } from '../utils/token';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { 
   collection, 
   addDoc, 
@@ -36,7 +36,6 @@ import {
   getDocs,
   writeBatch
 } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../App';
 
 const Colaboradores: React.FC<{ readOnly?: boolean }> = ({ readOnly }) => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);

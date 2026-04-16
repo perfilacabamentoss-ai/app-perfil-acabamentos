@@ -28,7 +28,7 @@ import {
 import { Supplier, QuoteItem } from '../types';
 import ConfirmModal from './ConfirmModal';
 import { GoogleGenAI } from "@google/genai";
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { 
   collection, 
   addDoc, 
@@ -41,7 +41,6 @@ import {
   getDocs,
   writeBatch
 } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../App';
 
 const Fornecedores: React.FC<{ readOnly?: boolean }> = ({ readOnly }) => {
   const categories = ['Básico', 'Acabamento', 'Ferragens', 'Elétrico', 'Hidráulico', 'Ferramentas', 'Químicos', 'Geral'];

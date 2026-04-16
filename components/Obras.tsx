@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Project, ProjectStage, ProjectPriority, Supplier, Collaborator, View } from '../types';
 import ConfirmModal from './ConfirmModal';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { 
   collection, 
   addDoc, 
@@ -21,7 +21,6 @@ import {
   orderBy,
   getDocs
 } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../App';
 
 const Obras: React.FC<{ readOnly?: boolean; onNavigate?: (view: View) => void }> = ({ readOnly, onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');

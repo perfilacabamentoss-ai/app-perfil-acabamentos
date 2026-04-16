@@ -12,7 +12,7 @@ import {
 import { Material, Project, Supplier, Payment, View, TechnicalProject, Client } from '../types';
 import ConfirmModal from './ConfirmModal';
 import { findBestMaterialPrice, extractMaterialsFromProject } from '../services/geminiService';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { 
   collection, 
   addDoc, 
@@ -25,7 +25,6 @@ import {
   getDocs,
   setDoc
 } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../App';
 
 // Componente Interno de Calendário para Seleção de Data
 const MiniCalendar: React.FC<{ 

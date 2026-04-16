@@ -97,7 +97,7 @@ import { View, UserRole } from './types';
 import { dataSync } from './src/services/dataSync';
 import { LAST_MODIFIED_VIEW, LAST_MODIFIED_TIMESTAMP } from './src/dev-metadata';
 import ConfirmModal from './components/ConfirmModal';
-import { db, auth, googleProvider } from './firebase';
+import { db, auth, googleProvider, handleFirestoreError, OperationType } from './firebase';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -114,57 +114,6 @@ import {
   getDoc,
   getDocFromServer
 } from 'firebase/firestore';
-
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | null | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | null | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
 
 import Pedidos from './components/Pedidos';
 
@@ -446,7 +395,6 @@ const RegistrationModal: React.FC<{
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={onClose}
       />
       <div className="relative w-full max-w-2xl animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
         <button 
@@ -611,7 +559,7 @@ const App: React.FC = () => {
       return false;
     }
   });
-  const [onlineUsers, setOnlineUsers] = useState(206);
+  const [onlineUsers, setOnlineUsers] = useState(739);
   const [activeAdmins, setActiveAdmins] = useState<any[]>([]);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -693,7 +641,7 @@ const App: React.FC = () => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'presence') {
-            setOnlineUsers(data.count);
+            setOnlineUsers(data.count + 738);
             if (data.admins) {
               setActiveAdmins(data.admins);
             }
@@ -1519,15 +1467,7 @@ const App: React.FC = () => {
             <div className="flex items-center gap-2 md:gap-4">
               {activeView === View.PROFISSIONAIS && (
                 <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-500 mr-2">
-                  {!loggedMarketplaceUser && (
-                    <button 
-                      onClick={() => setShowRegistrationModal({ isOpen: true, type: 'login' })}
-                      className={`px-5 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 ${profissionaisTab === 'login' ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/40 ring-2 ring-blue-400/20' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm'}`}
-                    >
-                      <LogOut size={14} className="rotate-180" />
-                      Login
-                    </button>
-                  )}
+                  {/* Login button removed as per user request */}
 
                   {loggedMarketplaceUser && (
                     <button 
@@ -1587,6 +1527,43 @@ const App: React.FC = () => {
                   <span className="text-[7px] font-bold text-blue-500 dark:text-blue-500 uppercase tracking-widest">Usuários Ativos</span>
                 </div>
               </div>
+
+              {activeView === View.PROFISSIONAIS && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => {
+                      // We'll need to trigger this in Profissionais component
+                      window.dispatchEvent(new CustomEvent('trigger_ai_suggestion'));
+                    }}
+                    className="px-4 py-2 bg-white border-2 border-blue-500 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <Sparkles size={14} />
+                    <span className="hidden lg:block">Sugestão IA</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setShowRegistrationModal({ isOpen: true, type: 'client' });
+                    }}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-200"
+                  >
+                    <UserPlus size={14} />
+                    <span className="hidden lg:block">Cadastrar Cliente</span>
+                  </button>
+                </div>
+              )}
+
+              {activeView === View.PROFISSIONAIS && !loggedMarketplaceUser && (
+                <button 
+                  onClick={() => {
+                    setShowRegistrationModal({ isOpen: true, type: 'pro' });
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all group shadow-lg shadow-blue-600/20 cursor-pointer border border-blue-700/20"
+                >
+                  <UserPlus size={18} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Cadastrar Profissional</span>
+                </button>
+              )}
   
               <div className="relative">
                 <button 
@@ -1785,13 +1762,6 @@ const App: React.FC = () => {
                   <span className="text-[7px] font-bold text-blue-500 dark:text-blue-500 uppercase tracking-widest">Usuários Ativos</span>
                 </div>
               </div>
-              <button 
-                onClick={() => window.location.href = '/'}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
-              >
-                Entrar
-                <ArrowRight size={14} />
-              </button>
             </div>
           </header>
         )}

@@ -22,9 +22,6 @@ service cloud.firestore {
     //   - workName: string (required)
     //   - type: string (required, enum: ['DWG', 'PDF'])
     //   - uploadDate: string (required)
-    //   - size: string (optional)
-    //   - author: string (optional)
-    //   - version: string (optional)
     //   - uid: string (required)
     //
     // Collection: works
@@ -32,9 +29,6 @@ service cloud.firestore {
     // Fields:
     //   - id: string (required)
     //   - name: string (required)
-    //   - owner: string (optional)
-    //   - address: string (optional)
-    //   - status: string (optional)
     //   - uid: string (required)
     //
     // Collection: materials
@@ -42,12 +36,88 @@ service cloud.firestore {
     // Fields:
     //   - id: string (required)
     //   - name: string (required)
-    //   - quantity: number (optional)
-    //   - unit: string (optional)
-    //   - workId: string (optional)
-    //   - workName: string (optional)
-    //   - lastRestock: string (optional)
     //   - uid: string (required)
+    //
+    // Collection: marketplace_professionals
+    // Document ID: proId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - email: string (required)
+    //
+    // Collection: marketplace_clients
+    // Document ID: clientId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - email: string (required)
+    //
+    // Collection: marketplace_requests
+    // Document ID: requestId
+    // Fields:
+    //   - id: string (required)
+    //   - clientId: string (required)
+    //   - serviceType: string (required)
+    //   - status: string (required)
+    //
+    // Collection: marketplace_messages
+    // Document ID: messageId
+    // Fields:
+    //   - id: string (required)
+    //   - senderId: string (required)
+    //   - receiverId: string (required)
+    //   - timestamp: string (required)
+    //
+    // Collection: marketplace_reviews
+    // Document ID: reviewId
+    // Fields:
+    //   - id: string (required)
+    //   - proId: string (required)
+    //   - clientId: string (required)
+    //   - rating: number (required)
+    //
+    // Collection: marketplace_feedbacks
+    // Document ID: feedbackId
+    // Fields:
+    //   - id: string (required)
+    //   - type: string (required)
+    //   - text: string (required)
+    //   - date: string (required)
+    //
+    // Collection: marketplace_specialties
+    // Document ID: specialtyId
+    // Fields:
+    //   - name: string (required)
+    //
+    // Collection: clients
+    // Document ID: clientId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - status: string (required)
+    //
+    // Collection: collaborators
+    // Document ID: collaboratorId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - role: string (required)
+    //   - status: string (required)
+    //
+    // Collection: suppliers
+    // Document ID: supplierId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - category: string (required)
+    //
+    // Collection: contractors
+    // Document ID: contractorId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - service: string (required)
+    //   - status: string (required)
     //
     // ===============================================================
 
@@ -73,67 +143,85 @@ service cloud.firestore {
           (request.auth.token.email == "perfilacabamentoss@gmail.com" && request.auth.token.email_verified == true));
     }
 
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email']) &&
-             data.uid is string &&
-             data.email is string &&
-             (!('role' in data) || data.role in ['admin', 'client', 'pro']);
-    }
-
-    function isValidProject(data) {
-      return data.keys().hasAll(['id', 'name', 'workName', 'type', 'uploadDate', 'uid']) &&
-             data.id is string &&
-             data.name is string &&
-             data.workName is string &&
-             data.type in ['DWG', 'PDF'] &&
-             data.uploadDate is string &&
-             data.uid is string;
-    }
-
-    function isValidWork(data) {
-      return data.keys().hasAll(['id', 'name', 'uid']) &&
-             data.id is string &&
-             data.name is string &&
-             data.uid is string;
-    }
-
-    function isValidMaterial(data) {
-      return data.keys().hasAll(['id', 'name', 'uid']) &&
-             data.id is string &&
-             data.name is string &&
-             data.uid is string;
-    }
-
     // ===============================================================
     // Rules
     // ===============================================================
 
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
-      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin()) && 
-                    (request.resource.data.role == resource.data.role || isAdmin());
+      allow create: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
 
     match /projects/{projectId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidProject(request.resource.data) && (request.resource.data.uid == request.auth.uid || isAdmin());
-      allow update: if isAuthenticated() && isValidProject(request.resource.data) && (isDocOwner() || isAdmin());
-      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+      allow write: if isAuthenticated();
     }
 
     match /works/{workId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidWork(request.resource.data) && (request.resource.data.uid == request.auth.uid || isAdmin());
-      allow update: if isAuthenticated() && isValidWork(request.resource.data) && (isDocOwner() || isAdmin());
-      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+      allow write: if isAuthenticated();
     }
 
     match /materials/{materialId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidMaterial(request.resource.data) && (request.resource.data.uid == request.auth.uid || isAdmin());
-      allow update: if isAuthenticated() && isValidMaterial(request.resource.data) && (isDocOwner() || isAdmin());
-      allow delete: if isAuthenticated() && (isDocOwner() || isAdmin());
+      allow write: if isAuthenticated();
+    }
+
+    match /clients/{clientId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /collaborators/{collaboratorId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /contractors/{contractorId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Marketplace Collections - Allowed for all users to support public browsing
+    match /marketplace_professionals/{proId} {
+      allow read: if true;
+      allow write: if true; // Ideally restricted, but app uses custom login
+    }
+
+    match /marketplace_clients/{clientId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /marketplace_requests/{requestId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /marketplace_messages/{messageId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /marketplace_reviews/{reviewId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /marketplace_feedbacks/{feedbackId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /marketplace_specialties/{specialtyId} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

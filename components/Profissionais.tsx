@@ -36,7 +36,8 @@ import {
   ArrowLeft,
   Hammer,
   Share2,
-  DollarSign
+  DollarSign,
+  Video
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { 
@@ -48,6 +49,18 @@ import {
   View 
 } from '../types';
 import ConfirmModal from './ConfirmModal';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { 
+  collection, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  where, 
+  getDocs 
+} from 'firebase/firestore';
 
 const WORK_TYPES = [
   'Reforma de apartamento', 'Construção', 'Pequenos reparos', 'Instalação específica', 'Acabamentos'
@@ -128,36 +141,42 @@ const Profissionais: React.FC<{
   useEffect(() => {
     const unsubPros = onSnapshot(collection(db, 'marketplace_professionals'), (snapshot) => {
       setProfessionals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MarketplaceProfessional[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'marketplace_professionals'));
 
     const unsubClients = onSnapshot(collection(db, 'marketplace_clients'), (snapshot) => {
       setMarketplaceClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MarketplaceClient[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'marketplace_clients'));
 
     const unsubRequests = onSnapshot(collection(db, 'marketplace_requests'), (snapshot) => {
       setServiceRequests(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MarketplaceServiceRequest[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'marketplace_requests'));
 
     const unsubMessages = onSnapshot(collection(db, 'marketplace_messages'), (snapshot) => {
       setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MarketplaceChatMessage[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'marketplace_messages'));
 
     const unsubReviews = onSnapshot(collection(db, 'marketplace_reviews'), (snapshot) => {
       setReviews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MarketplaceReview[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'marketplace_reviews'));
 
     const unsubFeedbacks = onSnapshot(collection(db, 'marketplace_feedbacks'), (snapshot) => {
       setFeedbacks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[]);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'marketplace_feedbacks'));
 
     const unsubSpecialties = onSnapshot(collection(db, 'marketplace_specialties'), (snapshot) => {
       if (!snapshot.empty) {
         const specs = snapshot.docs.map(doc => doc.data().name as string);
         setSpecialties(specs);
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'marketplace_specialties'));
 
     setIsLoading(false);
+
+    const handleTriggerAI = () => {
+      generateMaterialsWithAI("Simulação de Reforma Geral", "Reforma");
+    };
+
+    window.addEventListener('trigger_ai_suggestion', handleTriggerAI);
 
     return () => {
       unsubPros();
@@ -167,6 +186,7 @@ const Profissionais: React.FC<{
       unsubReviews();
       unsubFeedbacks();
       unsubSpecialties();
+      window.removeEventListener('trigger_ai_suggestion', handleTriggerAI);
     };
   }, []);
 
@@ -216,9 +236,12 @@ const Profissionais: React.FC<{
     certificates: []
   });
 
-  const [clientForm, setClientForm] = useState<Partial<MarketplaceClient>>({});
+  const [clientForm, setClientForm] = useState<Partial<MarketplaceClient>>({
+    videos: []
+  });
   const [requestForm, setRequestForm] = useState<Partial<MarketplaceServiceRequest>>({
-    photos: []
+    photos: [],
+    videos: []
   });
 
   const [chatInput, setChatInput] = useState('');
@@ -228,7 +251,6 @@ const Profissionais: React.FC<{
   const [ratingValue, setRatingValue] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
 
-  const [feedbacks, setFeedbacks] = useState<{id: string, type: 'Sugestão' | 'Reclamação', text: string, date: string}[]>([]);
   const [feedbackForm, setFeedbackForm] = useState({ type: 'Sugestão' as 'Sugestão' | 'Reclamação', text: '' });
 
   const [showAIBubble, setShowAIBubble] = useState(false);
@@ -360,7 +382,9 @@ const Profissionais: React.FC<{
         email: clientForm.email || '',
         city: clientForm.city || '',
         workType: clientForm.workType as any || 'Construção',
-        password: clientForm.password || ''
+        serviceDescription: clientForm.serviceDescription || '',
+        password: clientForm.password || '',
+        videos: clientForm.videos || []
       };
       
       const docRef = await addDoc(collection(db, 'marketplace_clients'), newClient);
@@ -369,7 +393,7 @@ const Profissionais: React.FC<{
       setClientForm({});
       
       // Trigger AI materials suggestion
-      generateMaterialsWithAI(`Novo cliente registrado para ${newClient.workType}`, newClient.workType);
+      generateMaterialsWithAI(newClient.serviceDescription || `Novo cliente registrado para ${newClient.workType}`, newClient.workType);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'marketplace_clients');
     } finally {
@@ -484,6 +508,7 @@ const Profissionais: React.FC<{
         location: requestForm.location || '',
         description: requestForm.description || '',
         photos: requestForm.photos || [],
+        videos: requestForm.videos || [],
         deadline: requestForm.deadline || '',
         budget: requestForm.budget || 0,
         status: 'Aberto',
@@ -491,7 +516,7 @@ const Profissionais: React.FC<{
       };
       
       await addDoc(collection(db, 'marketplace_requests'), newRequest);
-      setRequestForm({ photos: [] });
+      setRequestForm({ photos: [], videos: [] });
       setActiveTab('dashboard_client');
 
       // Trigger AI materials suggestion
@@ -1228,6 +1253,58 @@ const Profissionais: React.FC<{
                 </select>
               </div>
 
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Descrição do Serviço</label>
+                <textarea 
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all min-h-[100px]"
+                  placeholder="Descreva o que você precisa (ex: Reforma completa de banheiro, pintura de sala, etc.)"
+                  value={clientForm.serviceDescription || ''}
+                  onChange={e => setClientForm({...clientForm, serviceDescription: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vídeos da Obra/Projeto</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {clientForm.videos?.map((vid, i) => (
+                    <div key={i} className="relative h-24 rounded-2xl overflow-hidden border border-slate-200 group bg-slate-100 flex items-center justify-center">
+                      <Video size={24} className="text-slate-400" />
+                      <button 
+                        type="button"
+                        onClick={() => setClientForm({...clientForm, videos: clientForm.videos?.filter((_, index) => index !== i)})}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-lg"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="h-24 flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-100 hover:border-blue-400 transition-all">
+                    <Upload size={20} className="text-slate-400" />
+                    <span className="text-[8px] font-black text-slate-400 uppercase mt-1 tracking-widest">Adicionar Vídeo</span>
+                    <input 
+                      type="file" 
+                      accept="video/*" 
+                      multiple 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        files.forEach(file => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setClientForm(prev => ({
+                              ...prev,
+                              videos: [...(prev.videos || []), reader.result as string]
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
               <button 
                 type="submit"
                 disabled={isSubmitting}
@@ -1258,25 +1335,25 @@ const Profissionais: React.FC<{
         <div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight uppercase">Profissionais</h1>
           <p className="text-slate-500 mt-2 font-medium">Marketplace de serviços da construção civil</p>
+          <button 
+            onClick={() => {
+              const inviteUrl = `${window.location.origin}${window.location.pathname}?action=registrar_profissional`;
+              setShowShareModal({
+                isOpen: true,
+                url: inviteUrl,
+                title: 'Convite Perfil Acabamentos',
+                text: 'Olá! Gostaria de convidar você para se cadastrar como profissional na Perfil Acabamentos e fazer parte do nosso marketplace.'
+              });
+            }}
+            className="mt-4 px-6 py-3 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-blue-100 transition-all flex items-center justify-center gap-2 shadow-sm w-fit"
+            title="Compartilhar link direto para cadastro de profissionais"
+          >
+            <UserPlus size={18} />
+            Convidar Profissionais
+          </button>
         </div>
         
         <div className="flex flex-wrap items-center gap-4">
-          <button 
-            onClick={handleShare}
-            className="px-6 py-3 bg-white border-2 border-amber-500 text-amber-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-50 transition-all flex items-center gap-2 shadow-sm"
-          >
-            <Share2 size={16} />
-            Compartilhar
-          </button>
-          
-          <button 
-            onClick={() => generateMaterialsWithAI("Simulação de Reforma Geral", "Reforma")}
-            className="px-6 py-3 bg-white border-2 border-blue-500 text-blue-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2 shadow-sm"
-          >
-            <Sparkles size={16} />
-            Sugestão IA
-          </button>
-          
           {loggedUser ? (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3 px-4 py-2 bg-slate-100 rounded-xl border border-slate-200">
@@ -1308,21 +1385,8 @@ const Profissionais: React.FC<{
                 <LogOut size={18} />
               </button>
             </div>
-          ) : (
-            <button 
-              onClick={() => setActiveTab('login')}
-              className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'login' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-            >
-              Login / Cadastro
-            </button>
-          )}
+          ) : null}
 
-          <button 
-            onClick={() => setActiveTab('find')}
-            className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'find' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-          >
-            Encontrar
-          </button>
           <button 
             onClick={() => setActiveTab('manage')}
             className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'manage' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
@@ -1843,11 +1907,15 @@ const Profissionais: React.FC<{
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Portfólio (Fotos de Obras)</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Portfólio (Máximo 3 Fotos ou Vídeos)</label>
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
-                  {proForm.portfolio?.map((img, i) => (
+                  {proForm.portfolio?.map((item, i) => (
                     <div key={i} className="relative h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
-                      <img src={img} alt={`Portfolio ${i}`} className="w-full h-full object-cover" />
+                      {item.startsWith('data:video') || item.includes('video') ? (
+                        <video src={item} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={item} alt={`Portfolio ${i}`} className="w-full h-full object-cover" />
+                      )}
                       <button 
                         type="button"
                         onClick={() => setProForm({...proForm, portfolio: proForm.portfolio?.filter((_, index) => index !== i)})}
@@ -1857,38 +1925,44 @@ const Profissionais: React.FC<{
                       </button>
                     </div>
                   ))}
-                  <label className="h-24 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-blue-400 transition-all">
-                    <Upload size={20} className="text-slate-400" />
-                    <span className="text-[8px] font-black text-slate-400 uppercase mt-1 tracking-widest">Adicionar</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      multiple 
-                      className="hidden" 
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        const currentPortfolio = proForm.portfolio || [];
-                        if (currentPortfolio.length + files.length > 8) {
-                          alert('Limite de 8 fotos no portfólio atingido.');
-                          return;
-                        }
-                        files.forEach(file => {
-                          if (file.size > 1024 * 1024) { // 1MB limit
-                            alert(`A imagem ${file.name} é muito grande (>1MB) e não será adicionada.`);
+                  {(!proForm.portfolio || proForm.portfolio.length < 3) && (
+                    <label className="h-24 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-blue-400 transition-all">
+                      <Upload size={20} className="text-slate-400" />
+                      <span className="text-[8px] font-black text-slate-400 uppercase mt-1 tracking-widest">Adicionar</span>
+                      <input 
+                        type="file" 
+                        accept="image/*,video/*" 
+                        multiple 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          const currentPortfolio = proForm.portfolio || [];
+                          if (currentPortfolio.length + files.length > 3) {
+                            alert('Limite de 3 itens no portfólio atingido.');
                             return;
                           }
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setProForm(prev => ({
-                              ...prev,
-                              portfolio: [...(prev.portfolio || []), reader.result as string]
-                            }));
-                          };
-                          reader.readAsDataURL(file);
-                        });
-                      }}
-                    />
-                  </label>
+                          files.forEach(file => {
+                            if (file.size > 5 * 1024 * 1024) { // 5MB limit for videos/images
+                              alert(`O arquivo ${file.name} é muito grande (>5MB) e não será adicionado.`);
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setProForm(prev => {
+                                const newPortfolio = [...(prev.portfolio || []), reader.result as string];
+                                if (newPortfolio.length > 3) return prev;
+                                return {
+                                  ...prev,
+                                  portfolio: newPortfolio
+                                };
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                          });
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
 
@@ -2479,6 +2553,20 @@ const Profissionais: React.FC<{
                           </span>
                         </div>
                         <h3 className="text-xl font-black text-slate-900">{request.description}</h3>
+                        
+                        {(request.photos?.length || 0) > 0 || (request.videos?.length || 0) > 0 ? (
+                          <div className="flex gap-2 overflow-x-auto py-2">
+                            {request.photos?.map((photo, idx) => (
+                              <img key={idx} src={photo} alt="Local" className="h-16 w-16 object-cover rounded-lg flex-shrink-0 border border-slate-100" />
+                            ))}
+                            {request.videos?.map((vid, idx) => (
+                              <div key={idx} className="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-100">
+                                <Video size={20} className="text-slate-400" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
                         <div className="flex items-center gap-4 text-slate-500 text-sm font-medium">
                           <div className="flex items-center gap-2">
                             <MapPin size={16} className="text-blue-500" />
@@ -2744,7 +2832,7 @@ const Profissionais: React.FC<{
                   ))}
                   <label className="h-24 flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-100 hover:border-blue-400 transition-all">
                     <Upload size={20} className="text-slate-400" />
-                    <span className="text-[8px] font-black text-slate-400 uppercase mt-1 tracking-widest">Adicionar</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase mt-1 tracking-widest">Adicionar Foto</span>
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -2758,6 +2846,47 @@ const Profissionais: React.FC<{
                             setRequestForm(prev => ({
                               ...prev,
                               photos: [...(prev.photos || []), reader.result as string]
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        });
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vídeos do Local/Projeto</label>
+                <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+                  {requestForm.videos?.map((vid, i) => (
+                    <div key={i} className="relative h-24 rounded-2xl overflow-hidden border border-slate-200 group bg-slate-100 flex items-center justify-center">
+                      <Video size={24} className="text-slate-400" />
+                      <button 
+                        type="button"
+                        onClick={() => setRequestForm({...requestForm, videos: requestForm.videos?.filter((_, index) => index !== i)})}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 shadow-lg"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="h-24 flex flex-col items-center justify-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-100 hover:border-blue-400 transition-all">
+                    <Upload size={20} className="text-slate-400" />
+                    <span className="text-[8px] font-black text-slate-400 uppercase mt-1 tracking-widest">Adicionar Vídeo</span>
+                    <input 
+                      type="file" 
+                      accept="video/*" 
+                      multiple 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        files.forEach(file => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setRequestForm(prev => ({
+                              ...prev,
+                              videos: [...(prev.videos || []), reader.result as string]
                             }));
                           };
                           reader.readAsDataURL(file);
@@ -2844,12 +2973,18 @@ const Profissionais: React.FC<{
                       Portfólio de Obras
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {selectedPro.portfolio.length > 0 ? selectedPro.portfolio.map((img, i) => (
-                        <img key={i} src={img} alt={`Obra ${i+1}`} className="w-full h-32 object-cover rounded-2xl border border-slate-100" />
+                      {selectedPro.portfolio.length > 0 ? selectedPro.portfolio.map((item, i) => (
+                        <div key={i} className="relative h-32 rounded-2xl overflow-hidden border border-slate-100">
+                          {item.startsWith('data:video') || item.includes('video') ? (
+                            <video src={item} controls className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={item} alt={`Obra ${i+1}`} className="w-full h-full object-cover" />
+                          )}
+                        </div>
                       )) : (
                         <div className="col-span-full py-12 bg-slate-50 rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
                           <ImageIcon size={32} className="mb-2 opacity-20" />
-                          <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma foto no portfólio</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma foto ou vídeo no portfólio</p>
                         </div>
                       )}
                     </div>

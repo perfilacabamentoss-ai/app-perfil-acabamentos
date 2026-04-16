@@ -25,7 +25,7 @@ import { TechnicalProject, View, Material } from '../types';
 import { extractMaterialsFromProject, extractServicesFromProject } from '../services/geminiService';
 import { Loader2, Sparkles, ClipboardList } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { 
   collection, 
   addDoc, 
@@ -38,7 +38,6 @@ import {
   setDoc,
   getDocs
 } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../App';
 
 const ProjectMetricCard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group cursor-pointer h-36">

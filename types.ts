@@ -170,6 +170,8 @@ export interface TechnicalProject {
   uploadDate: string;
   size: string;
   author: string;
+  evaluation?: { rating: number; comment: string; };
+  isDownloaded?: boolean;
 }
 
 export interface Supplier {
@@ -311,8 +313,10 @@ export interface MarketplaceClient {
   email: string;
   city: string;
   workType: 'Reforma de apartamento' | 'Construção' | 'Pequenos reparos' | 'Instalação específica' | 'Acabamentos';
+  serviceDescription?: string;
   password?: string;
   notifications?: { id: string, text: string, timestamp: string }[];
+  videos?: string[];
 }
 
 export interface MarketplaceServiceRequest {
@@ -323,6 +327,7 @@ export interface MarketplaceServiceRequest {
   location: string;
   description: string;
   photos: string[];
+  videos?: string[];
   deadline: string;
   budget: number;
   status: 'Aberto' | 'Em Negociação' | 'Concluído' | 'Cancelado';

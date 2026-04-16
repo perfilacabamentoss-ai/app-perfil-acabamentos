@@ -58,6 +58,138 @@
         "role": { "type": "string", "enum": ["admin", "client", "pro"] }
       },
       "required": ["uid", "email"]
+    },
+    "MarketplaceProfessional": {
+      "title": "MarketplaceProfessional",
+      "description": "A professional in the marketplace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "specialties": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "number" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "MarketplaceClient": {
+      "title": "MarketplaceClient",
+      "description": "A client in the marketplace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "MarketplaceServiceRequest": {
+      "title": "MarketplaceServiceRequest",
+      "description": "A service request in the marketplace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "clientId": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "status": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "clientId", "serviceType", "status"]
+    },
+    "MarketplaceChatMessage": {
+      "title": "MarketplaceChatMessage",
+      "description": "A chat message in the marketplace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "senderId", "receiverId", "timestamp"]
+    },
+    "MarketplaceReview": {
+      "title": "MarketplaceReview",
+      "description": "A review in the marketplace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "proId": { "type": "string" },
+        "clientId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" }
+      },
+      "required": ["id", "proId", "clientId", "rating"]
+    },
+    "MarketplaceFeedback": {
+      "title": "MarketplaceFeedback",
+      "description": "Feedback from users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "text": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "type", "text", "date"]
+    },
+    "MarketplaceSpecialty": {
+      "title": "MarketplaceSpecialty",
+      "description": "A specialty in the marketplace",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "A construction client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "status"]
+    },
+    "Collaborator": {
+      "title": "Collaborator",
+      "description": "A construction collaborator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "role", "status"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "A material supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "name", "category"]
+    },
+    "Contractor": {
+      "title": "Contractor",
+      "description": "A construction contractor",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "service": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "service", "status"]
     }
   },
   "firestore": {
@@ -76,6 +208,50 @@
     "users": {
       "schema": "User",
       "description": "Collection of system users"
+    },
+    "marketplace_professionals": {
+      "schema": "MarketplaceProfessional",
+      "description": "Collection of marketplace professionals"
+    },
+    "marketplace_clients": {
+      "schema": "MarketplaceClient",
+      "description": "Collection of marketplace clients"
+    },
+    "marketplace_requests": {
+      "schema": "MarketplaceServiceRequest",
+      "description": "Collection of marketplace service requests"
+    },
+    "marketplace_messages": {
+      "schema": "MarketplaceChatMessage",
+      "description": "Collection of marketplace chat messages"
+    },
+    "marketplace_reviews": {
+      "schema": "MarketplaceReview",
+      "description": "Collection of marketplace reviews"
+    },
+    "marketplace_feedbacks": {
+      "schema": "MarketplaceFeedback",
+      "description": "Collection of marketplace feedbacks"
+    },
+    "marketplace_specialties": {
+      "schema": "MarketplaceSpecialty",
+      "description": "Collection of marketplace specialties"
+    },
+    "clients": {
+      "schema": "Client",
+      "description": "Collection of construction clients"
+    },
+    "collaborators": {
+      "schema": "Collaborator",
+      "description": "Collection of construction collaborators"
+    },
+    "suppliers": {
+      "schema": "Supplier",
+      "description": "Collection of material suppliers"
+    },
+    "contractors": {
+      "schema": "Contractor",
+      "description": "Collection of construction contractors"
     }
   }
 }

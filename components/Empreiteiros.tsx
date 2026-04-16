@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Contractor, View } from '../types';
 import ConfirmModal from './ConfirmModal';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { 
   collection, 
   addDoc, 
@@ -31,7 +31,6 @@ import {
   getDocs,
   writeBatch
 } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../App';
 
 const Empreiteiros: React.FC<{ readOnly?: boolean; onNavigate?: (view: View) => void }> = ({ readOnly, onNavigate }) => {
   const [contractors, setContractors] = useState<Contractor[]>([]);
@@ -60,7 +59,7 @@ const Empreiteiros: React.FC<{ readOnly?: boolean; onNavigate?: (view: View) => 
         ...doc.data()
       }));
       setWorks(worksData);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'works'));
 
     return () => {
       unsubscribe();

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Client, View } from '../types';
 import ConfirmModal from './ConfirmModal';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { 
   collection, 
   addDoc, 
@@ -33,7 +33,6 @@ import {
   query, 
   orderBy
 } from 'firebase/firestore';
-import { handleFirestoreError, OperationType } from '../App';
 
 const Clientes: React.FC<{ readOnly?: boolean; onNavigate?: (view: View) => void }> = ({ readOnly, onNavigate }) => {
   const [clients, setClients] = useState<Client[]>([]);
